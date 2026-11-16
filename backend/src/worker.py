@@ -7,6 +7,7 @@ from src.config.settings import REDIS_URL
 from src.models import Job, Dataset, Report
 from src.services.business import analyze
 from src.services.reports import deliver
+from src.services import dispatch as dispatch_service
 from src.services.audit import record
 logging.basicConfig(level=logging.INFO)
 def execute(job_id):
@@ -34,6 +35,17 @@ def tick():
             d=deliver(db,r)
             if d:record(db,'worker','report.delivered',{'id':r.id,'delivery':d.id})
         db.commit()
+    with Session() as db:
+        for d in dispatch_service.pending_dispatches(db):
+            try:
+                dispatch_service.advance(db,d,'worker')
+            except Exception:
+                logging.exception('Dispatch tick failed; will retry')
+                db.rollback()
+def recover_dispatches():
+    with Session() as db:
+        ids=dispatch_service.recover(db)
+    if ids:logging.info('Recovered dispatch legs: %s',ids)
 def main():
     r=Redis.from_url(REDIS_URL,socket_timeout=3)
     # This Compose stack has a single worker. A crash must not strand its jobs.
@@ -41,6 +53,7 @@ def main():
         for j in db.scalars(select(Job).where(Job.status=='running')):
             j.status='queued';record(db,'worker','job.recovered',{'id':j.id})
         db.commit()
+    recover_dispatches()
     while True:
         Path('/tmp/heartbeat').touch()
         try:

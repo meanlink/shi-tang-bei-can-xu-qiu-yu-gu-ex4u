@@ -8,3 +8,22 @@ class JobStatus(str, Enum):
     running = 'running'
     completed = 'completed'
     failed = 'failed'
+class DispatchStatus(str, Enum):
+    pending_send = 'pending_send'
+    awaiting_verification = 'awaiting_verification'
+    fulfilled = 'fulfilled'
+    cancelling = 'cancelling'
+    cancelled = 'cancelled'
+    manual = 'manual'
+class LegStatus(str, Enum):
+    pending = 'pending'
+    sending = 'sending'
+    unknown = 'unknown'
+    accepted = 'accepted'
+    rejected = 'rejected'
+    cancelling = 'cancelling'
+    cancelled = 'cancelled'
+    locked = 'locked'
+class Party(str, Enum):
+    kitchen = 'kitchen'
+    station = 'station'
